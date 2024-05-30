@@ -1,0 +1,74 @@
+version: '3.7'
+
+services:
+  mariadb:
+    container_name: mariadb
+    hostname: mariadb
+    build: $PWD/requirements/mariadb
+    image: inception_mariadb
+    volumes:
+      - mariadb:/var/lib/mysql
+    # in case of problem we restart automatically the container
+    restart: on-failure
+    env_file:
+      - .env
+    networks:
+      - inception
+    expose:
+      - "3306"
+
+  wordpress:
+    container_name: wordpress
+    hostname: wordpress
+    build: $PWD/requirements/wordpress #set where the Dockerfile will build
+    image: inception_wordpress #set the image name
+    depends_on:
+      - mariadb
+    volumes: #set that the volume to connect is wordpress and the folder inside the containeer is /var/www/html for web config
+      - wordpress:/var/www/html
+    networks: 
+      - inception
+    env_file:
+      - .env
+    restart: on-failure # restart the machine always that it needed
+    expose:
+      - "9000"
+
+  nginx:
+    container_name: nginx
+    hostname: nginx
+    build: $PWD/requirements/nginx #set where the Dockerfile will build
+    image: inception_nginx #set the image name
+    depends_on:
+      - wordpress
+    volumes: #set that the volume to connect is wordpress and the folder inside the containeer is /var/www/html for web config
+      - wordpress:/var/www/html
+    ports: #set the por where the machine is listening
+      - 443:443
+    networks: 
+      - inception
+    env_file:
+      - .env
+    restart: on-failure # restart the machine always that it needed
+
+
+networks:
+  inception:
+    driver: bridge
+
+volumes:
+  mariadb:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data/mariadb/
+      o: bind
+
+  wordpress: 
+    #Define the driver, driver let you to store volumes in remote hosts
+    driver: local #local means that the volumes are created in the same host that we exec the container
+    #Define The driver options
+    driver_opts:
+      type: none #the filesytem type to use in the volume
+      device: $PWD/data/wordpress/ #set the path where we connect the container
+      o: bind
